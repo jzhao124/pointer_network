@@ -23,9 +23,9 @@ except:
   simple_decoder_fn_train = tf.contrib.seq2seq.simple_decoder_fn_train
 
 try:
-  from tensorflow.python.ops.gen_array_ops import _concat_v2 as concat_v2
+  from tensorflow.python.ops.gen_array_ops import _concat as concat_v2
 except:
-  concat_v2 = tf.concat_v2
+  concat_v2 = tf.concat
 
 def decoder_rnn(cell, inputs,
                 enc_outputs, enc_final_states,
