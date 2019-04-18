@@ -1,7 +1,11 @@
+
 import tensorflow as tf
 from tensorflow.contrib.framework import arg_scope
+from tensorflow.contrib.layers.python.layers.utils import smart_cond
+#from tensorflow.python.ops.gen_array_ops import concat as concat_v2
+concat_v2 = tf.concat
 
-from layers import *
+import layers as lys
 
 class Model(object):
   def __init__(self, config, 
@@ -97,23 +101,24 @@ class Model(object):
     self.global_step = tf.Variable(0, trainable=False)
 
     input_embed = tf.get_variable(
-        "input_embed", [1, self.input_dim, self.hidden_dim],
+        "input_embed3", [1, self.input_dim, self.hidden_dim],
         initializer=self.initializer)
 
+    # Computes a 1-D convolution given 3-D input and filter tensors. (deprecated argument values) (deprecated argument values)
     with tf.variable_scope("encoder"):
       self.embeded_enc_inputs = tf.nn.conv1d(
           self.enc_inputs, input_embed, 1, "VALID")
 
     batch_size = tf.shape(self.enc_inputs)[0]
     with tf.variable_scope("encoder"):
-      self.enc_cell = LSTMCell(
+      self.enc_cell = lys.LSTMCell(
           self.hidden_dim,
           initializer=self.initializer)
 
       if self.num_layers > 1:
         cells = [self.enc_cell] * self.num_layers
-        self.enc_cell = MultiRNNCell(cells)
-      self.enc_init_state = trainable_initial_state(
+        self.enc_cell = lys.MultiRNNCell(cells)
+      self.enc_init_state = lys.trainable_initial_state(
           batch_size, self.enc_cell.state_size)
 
       # self.encoder_outputs : [None, max_time, output_size]
@@ -121,15 +126,15 @@ class Model(object):
           self.enc_cell, self.embeded_enc_inputs,
           self.enc_seq_length, self.enc_init_state)
 
-      self.first_decoder_input = tf.expand_dims(trainable_initial_state(
+      self.first_decoder_input = tf.expand_dims(lys.trainable_initial_state(
           batch_size, self.hidden_dim, name="first_decoder_input"), 1)
       if self.use_terminal_symbol:
         # 0 index indicates terminal
         self.enc_outputs = concat_v2(
             [self.first_decoder_input, self.enc_outputs], axis=1)
 
-    with tf.variable_scope("decoder"):
-      self.idx_pairs = index_matrix_to_pairs(self.dec_targets)
+    with tf.variable_scope("dencoder"):
+      self.idx_pairs = lys.index_matrix_to_pairs(self.dec_targets)
       self.embeded_dec_inputs = tf.stop_gradient(
           tf.gather_nd(self.enc_outputs, self.idx_pairs))
 
@@ -141,13 +146,13 @@ class Model(object):
       self.embeded_dec_inputs = concat_v2(
           [self.first_decoder_input, self.embeded_dec_inputs], axis=1)
 
-      self.dec_cell = LSTMCell(
+      self.dec_cell = lys.LSTMCell(
           self.hidden_dim,
           initializer=self.initializer)
 
       if self.num_layers > 1:
         cells = [self.dec_cell] * self.num_layers
-        self.dec_cell = MultiRNNCell(cells)
+        self.dec_cell = lys.MultiRNNCell(cells)
 
       self.dec_pred_logits, _, _ = decoder_rnn(
           self.dec_cell, self.embeded_dec_inputs, 
@@ -160,8 +165,8 @@ class Model(object):
       self.dec_pred = tf.argmax(
           self.dec_pred_logits, 2, name="dec_pred")
 
-    with tf.variable_scope("decoder", reuse=True):
-      self.dec_inference_logits, _, _ = decoder_rnn(
+    with tf.variable_scope("dencoder", reuse=True):
+      self.dec_inference_logits, _, _ = lys.decoder_rnn(
           self.dec_cell, self.first_decoder_input,
           self.enc_outputs, self.enc_final_states,
           self.dec_seq_length, self.hidden_dim,
@@ -213,3 +218,4 @@ class Model(object):
       self.optim = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
     else:
       self.optim = optimizer.minimize(self.total_loss, global_step=self.global_step)
+

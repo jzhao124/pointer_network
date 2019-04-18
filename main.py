@@ -4,7 +4,8 @@ import tensorflow as tf
 
 from trainer import Trainer
 from config import get_config
-from utils import prepare_dirs_and_logger, save_config
+from utils_local import prepare_dirs_and_logger
+from utils_local import save_config
 
 config = None
 

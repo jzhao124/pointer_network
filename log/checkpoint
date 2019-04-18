@@ -1,0 +1,6 @@
+model_checkpoint_path: "convex_hull.ckpt-7600"
+all_model_checkpoint_paths: "convex_hull.ckpt-6800"
+all_model_checkpoint_paths: "convex_hull.ckpt-7000"
+all_model_checkpoint_paths: "convex_hull.ckpt-7200"
+all_model_checkpoint_paths: "convex_hull.ckpt-7400"
+all_model_checkpoint_paths: "convex_hull.ckpt-7600"

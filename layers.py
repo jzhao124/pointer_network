@@ -12,15 +12,15 @@ except:
 smart_cond = utils.smart_cond
 
 try:
-  LSTMCell = rnn.LSTMCell
-  MultiRNNCell = rnn.MultiRNNCell
-  dynamic_rnn_decoder = seq2seq.dynamic_rnn_decoder
-  simple_decoder_fn_train = seq2seq.simple_decoder_fn_train
+    LSTMCell = tf.contrib.rnn.LSTMCell
+    MultiRNNCell = tf.contrib.rnn.MultiRNNCell
+#    dynamic_rnn_decoder = tf.contrib.seq2seq.dynamic_rnn_decoder
+#    simple_decoder_fn_train = tf.contrib.seq2seq.simple_decoder_fn_train
 except:
-  LSTMCell = tf.contrib.rnn.LSTMCell
-  MultiRNNCell = tf.contrib.rnn.MultiRNNCell
-  dynamic_rnn_decoder = tf.contrib.seq2seq.dynamic_rnn_decoder
-  simple_decoder_fn_train = tf.contrib.seq2seq.simple_decoder_fn_train
+    LSTMCell = tf.contrib.rnn.LSTMCell
+    MultiRNNCell = tf.contrib.rnn.MultiRNNCell
+#    dynamic_rnn_decoder = tf.contrib.seq2seq.dynamic_rnn_decoder
+#    simple_decoder_fn_train = tf.contrib.seq2seq.simple_decoder_fn_trainn
 
 try:
   from tensorflow.python.ops.gen_array_ops import _concat as concat_v2
@@ -93,7 +93,7 @@ def decoder_rnn(cell, inputs,
         return (done, cell_state, next_input, cell_output, context_state)
 
     outputs, final_state, final_context_state = \
-        dynamic_rnn_decoder(cell, decoder_fn, inputs=inputs,
+        seq2seq.dynamic_rnn_decoder(cell, decoder_fn, inputs=inputs,
                             sequence_length=seq_length, scope=scope)
 
     if is_train:
@@ -112,7 +112,7 @@ def trainable_initial_state(batch_size, state_size,
   else:
     flat_initializer = tuple(tf.zeros_initializer for initializer in flat_state_size)
 
-  names = ["{}_{}".format(name, i) for i in xrange(len(flat_state_size))]
+  names = ["{}_{}".format(name, i) for i in range(len(flat_state_size))]
   tiled_states = []
 
   for name, size, init in zip(names, flat_state_size, flat_initializer):

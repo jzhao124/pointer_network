@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
 
 from model import Model
-from utils import show_all_variables
+#from utils import show_all_variables
 from data_loader import TSPDataLoader
 
 class Trainer(object):
@@ -36,7 +36,7 @@ class Trainer(object):
         mask=self.data_loader.mask)
 
     self.build_session()
-    show_all_variables()
+#    show_all_variables()
 
   def build_session(self):
     self.saver = tf.train.Saver()
