@@ -261,4 +261,4 @@ class PointerNet(object):
     if self.forward_only:
       return outputs[0]
     else:
-      return outputs[1],outputs[2],outputs[3],outputs[4],outputs[5]
+      return outputs[0], outputs[1],outputs[2],outputs[3],outputs[4],outputs[5]

@@ -10,10 +10,11 @@ import numpy as np
 import pointer_net 
 import time
 import os
+import pandas
 
 tf.app.flags.DEFINE_integer("batch_size", 128,"Batch size.")
-tf.app.flags.DEFINE_integer("max_input_sequence_len", 5, "Maximum input sequence length.")
-tf.app.flags.DEFINE_integer("max_output_sequence_len", 7, "Maximum output sequence length.")
+tf.app.flags.DEFINE_integer("max_input_sequence_len", 9, "Maximum input sequence length.")
+tf.app.flags.DEFINE_integer("max_output_sequence_len", 1, "Maximum output sequence length.")
 tf.app.flags.DEFINE_integer("rnn_size", 128, "RNN unit size.")
 tf.app.flags.DEFINE_integer("attention_size", 128, "Attention size.")
 tf.app.flags.DEFINE_integer("num_layers", 1, "Number of layers.")
@@ -22,7 +23,7 @@ tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Maximum gradient norm.")
 tf.app.flags.DEFINE_boolean("forward_only", False, "Forward Only.")
 tf.app.flags.DEFINE_string("log_dir", "./log", "Log directory")
-tf.app.flags.DEFINE_string("data_path", "D:/datasets/pointer_net/PTR_NETS/PTR_NETS/convex_hull_5_test.txt", "Data path.")
+tf.app.flags.DEFINE_string("data_path", "F:/Jupyter/personalized_incentive_data/total_processed.csv", "Data path.")
 tf.app.flags.DEFINE_integer("steps_per_checkpoint", 200, "frequence to do per checkpoint.")
 
 FLAGS = tf.app.flags.FLAGS
@@ -46,9 +47,9 @@ class ConvexHull(object):
       dec_input_weights = []
       
       for rec in recs:
-        inp, outp = rec[:-2].split(' output ')
-        inp = inp.split(' ')
-        outp = outp.split(' ')
+        inp_outp = rec[1:-1].split(',')
+        inp = inp_outp[2:-1]
+        outp = inp_outp[-1]
 
         enc_input = []
         for t in inp:
@@ -64,8 +65,8 @@ class ConvexHull(object):
         output=[pointer_net.START_ID]
         for i in outp:
           # Add 2 to value due to the sepcial tokens
-          output.append(int(i)+2)
-        output.append(pointer_net.END_ID)
+          output.append(int(i) + 2)
+        #output.append(pointer_net.END_ID)
         dec_input_len = len(output)-1
         output += [pointer_net.PAD_ID]*(FLAGS.max_output_sequence_len-dec_input_len)
         output = np.array(output)
@@ -120,11 +121,19 @@ class ConvexHull(object):
     loss = 0.0
     current_step = 0
 
-    while True:
+
+    predict = []
+    target = []
+    
+    steps = 10000
+    
+    same_counts = 0
+    total_counts = 0
+    for i in range(steps):
       start_time = time.time()
-      inputs,enc_input_weights, outputs, dec_input_weights = \
+      inputs, enc_input_weights, outputs, dec_input_weights = \
                   self.get_batch()
-      summary, step_loss, predicted_ids_with_logits, targets, debug_var = \
+      predicted_ids, summary, step_loss, predicted_ids_with_logits, targets, debug_var = \
                   self.model.step(self.sess, inputs, enc_input_weights, outputs, dec_input_weights)
       step_time += (time.time() - start_time) / FLAGS.steps_per_checkpoint
       loss += step_loss / FLAGS.steps_per_checkpoint
@@ -136,6 +145,9 @@ class ConvexHull(object):
       #return
       #/DEBUG PART
 
+      predict.append(str(np.array(predicted_ids_with_logits[1][i%20]).reshape(-1)))
+      target.append(str(targets[i%20]))
+
       #Time to print statistic and save model
       if current_step % FLAGS.steps_per_checkpoint == 0:
         with self.sess.as_default():
@@ -146,16 +158,36 @@ class ConvexHull(object):
         #Randomly choose one to check
         sample = np.random.choice(FLAGS.batch_size,1)[0]
         print("="*20)
-        print("Predict: "+str(np.array(predicted_ids_with_logits[1][sample]).reshape(-1)))
-        print("Target : "+str(targets[sample]))
+        print("Predict: "+ str(np.array(predicted_ids_with_logits[1][sample]).reshape(-1)))
+        print("Target : "+ str(targets[sample]))
+        
+        predict_target = zip(predict, target)
+        same_counts += sum([x == y for x, y in predict_target ])
+        total_counts += len(predict)
+        print ('same counts = ' + str(same_counts) + ', accuracy = ' + str(same_counts/total_counts))
+#        ####
+#        
+#        for i in range(FLAGS.batch_size):
+#          print("* %dth sample target: %s" % (i,str(outputs[i,1:]-2)))
+#          for predict in predicted_ids[i]:
+#              print("prediction: "+str(predict))
+#        ###
+        
         print("="*20)  
         checkpoint_path = os.path.join(FLAGS.log_dir, "convex_hull.ckpt")
         self.model.saver.save(self.sess, checkpoint_path, global_step=self.model.global_step)
         step_time, loss = 0.0, 0.0
+        
+        # save predict and target
+        output_df = pandas.DataFrame(columns = ['p', 't'])
+        output_df['p'] = predict
+        output_df['t'] = target
+        output_df.to_csv('F:\Jupyter\personalized_incentive_data\predict_target.csv')
+
 
   def eval(self):
     """ Randomly get a batch of data and output predictions """  
-    inputs,enc_input_weights, outputs, dec_input_weights = self.get_batch()
+    inputs, enc_input_weights, outputs, dec_input_weights = self.get_batch()
     predicted_ids = self.model.step(self.sess, inputs, enc_input_weights)    
     print("="*20)
     for i in range(FLAGS.batch_size):
